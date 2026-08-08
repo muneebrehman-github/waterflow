@@ -1,0 +1,15 @@
+package com.spgg.backend.security;
+
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+@Getter
+@Setter
+@ConfigurationProperties(prefix = "waterflow.jwt")
+public class JwtProperties {
+
+    private String secret;
+    private long accessTokenTtlMinutes = 15;
+    private long refreshTokenTtlDays = 7;
+}

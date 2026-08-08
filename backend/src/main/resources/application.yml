@@ -1,0 +1,71 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: spgg-backend
+
+  datasource:
+    url: jdbc:mariadb://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:waterflow}
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:root}
+    driver-class-name: org.mariadb.jdbc.Driver
+    hikari:
+      auto-commit: true
+      max-lifetime: 18000
+      maximum-pool-size: 10
+      minimum-idle: 10
+      idle-timeout: 6000
+      connection-timeout: 30000
+
+  jpa:
+    # Hibernate 6's package renamed the versioned MariaDB103Dialect to a
+    # single unversioned MariaDBDialect (auto-detects the server version).
+    database-platform: org.hibernate.dialect.MariaDBDialect
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:63791}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+waterflow:
+  jwt:
+    secret: ${JWT_SECRET:dev-only-please-override-this-secret-in-real-deployments-0123456789}
+    access-token-ttl-minutes: 15
+    refresh-token-ttl-days: 7
+  bootstrap:
+    super-admin-email: ${SUPER_ADMIN_EMAIL:admin@saafpanigharghar.local}
+    super-admin-password: ${SUPER_ADMIN_PASSWORD:ChangeMe123!}
+  # FR-NOT-001: no service-account key ships with the repo (a real one is a
+  # secret and must never be committed). Set FCM_SERVICE_ACCOUNT_PATH to an
+  # absolute filesystem path to a real Firebase project's service-account
+  # key (Project Settings > Service Accounts > Generate new private key in
+  # the Firebase console) to enable push notifications. Until that's set,
+  # this points at a file that doesn't exist — NotificationService logs a
+  # warning at startup and every send becomes a no-op; it never blocks the
+  # underlying business action (placing an order, recording a payment, ...).
+  fcm:
+    service-account-path: ${FCM_SERVICE_ACCOUNT_PATH:classpath:firebase/service-account.json}
+
+logging:
+  level:
+    com.spgg.backend: DEBUG

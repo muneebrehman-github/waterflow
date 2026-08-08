@@ -1,0 +1,59 @@
+services:
+  mariadb:
+    image: mariadb:10.6
+    container_name: spgg-mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: waterflow
+      MARIADB_USER: waterflow
+      MARIADB_PASSWORD: waterflow
+      MARIADB_ROOT_PASSWORD: root
+    ports:
+      - "33061:3306"
+    volumes:
+      - spgg_mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:6-alpine
+    container_name: spgg-redis
+    restart: unless-stopped
+    ports:
+      - "63791:6379"
+    volumes:
+      - spgg_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Runs the JVM inside a Linux container — sidesteps a host-machine Java NIO
+  # issue (bare Selector.open() fails natively on Windows here, likely a
+  # VPN/EDR agent interfering with AF_UNIX loopback sockets). Uses
+  # container-to-container networking (service names, internal ports), not
+  # the host-mapped ports above.
+  backend:
+    build: .
+    container_name: spgg-backend
+    restart: unless-stopped
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - "8081:8081"
+
+volumes:
+  spgg_mariadb_data:
+  spgg_redis_data:

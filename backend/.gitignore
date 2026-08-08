@@ -1,0 +1,8 @@
+target/
+.idea/
+*.iml
+.vscode/
+*.log
+.env
+# Real Firebase service-account keys are secrets — never commit them.
+src/main/resources/firebase/*.json
