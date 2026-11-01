@@ -28,6 +28,22 @@ export function Layout() {
         </Toolbar>
       </AppBar>
       <Container sx={{ py: 4 }}>
+        <Box
+          sx={{
+            mb: 3,
+            p: 2,
+            borderRadius: 2,
+            bgcolor: 'info.light',
+            color: 'info.contrastText',
+          }}
+        >
+          <Typography variant="subtitle1" fontWeight={700}>
+            Also available in FTS Control Center
+          </Typography>
+          <Typography variant="body2">
+            This Super Admin portal remains available. Control Center (port 8010) is the unified ops console.
+          </Typography>
+        </Box>
         <Outlet />
       </Container>
     </Box>
