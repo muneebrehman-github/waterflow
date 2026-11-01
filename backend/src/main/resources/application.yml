@@ -47,6 +47,19 @@ springdoc:
   api-docs:
     path: /v3/api-docs
 
+fts:
+  cc:
+    api-key: ${FTS_CC_API_KEY:dev-fts-cc-key-change-me}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    tags:
+      application: waterflow
+
 waterflow:
   jwt:
     secret: ${JWT_SECRET:dev-only-please-override-this-secret-in-real-deployments-0123456789}

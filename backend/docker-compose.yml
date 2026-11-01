@@ -51,6 +51,7 @@ services:
       DB_PORT: 3306
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      FTS_CC_API_KEY: ${FTS_CC_API_KEY:-dev-fts-cc-key-change-me}
     ports:
       - "8081:8081"
 
