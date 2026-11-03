@@ -1,0 +1,490 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "Lyca USA - MNP Port-In Integration",
+    "description": "MNP Port-In and status-check APIs based on Plintron MNP Proxy Specification Document V1.1 (USA) and USA API Spec V1.3.\n\nReplace environment variables with values from your Plintron/Lyca integration pack.\n\nFlow:\n1. (Optional) GET_CUSTOMER_DETAILS\n2. INITIATE_PORTIN_REQUEST\n3. CHECK_PORTIN_STATUS (poll until Completed/Rejected/Cancelled)\n4. GET_ACCOUNT_DETAILS (verify MNP_IND = 1)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0 - Optional - GET_CUSTOMER_DETAILS",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/xml",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Accept",
+            "value": "application/xml",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "<GetCustomerDetails>\n  <MSISDN>{{p_msisdn}}</MSISDN>\n  <Country>USA</Country>\n</GetCustomerDetails>",
+          "options": {
+            "raw": {
+              "language": "xml"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{mnp_base_url}}",
+          "host": ["{{mnp_base_url}}"]
+        },
+        "description": "Optional step before port-in. Retrieves customer details (name, address, account) for validation."
+      },
+      "response": []
+    },
+    {
+      "name": "1 - INITIATE_PORTIN_REQUEST (Flat JSON)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const json = pm.response.json();",
+              "const resp = json.SUBMIT_PORTIN_RESPONSE || json.ENVELOPE?.BODY?.SUBMIT_PORTIN_RESPONSE;",
+              "if (resp && resp.BODY && resp.BODY.REFERENCE_CODE) {",
+              "    pm.environment.set('reference_code', resp.BODY.REFERENCE_CODE);",
+              "    console.log('Saved reference_code:', resp.BODY.REFERENCE_CODE);",
+              "}",
+              "pm.test('Port-in submitted', function () {",
+              "    pm.expect(resp?.ERROR_CODE).to.eql('0');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"SUBMIT_PORTIN_REQUEST\": {\n    \"MSISDN\": \"{{msisdn}}\",\n    \"ICC_ID\": \"{{icc_id}}\",\n    \"P_MSISDN\": \"{{p_msisdn}}\",\n    \"ACCOUNT_NUMBER\": \"{{account_number}}\",\n    \"PWD_PIN\": \"{{pwd_pin}}\",\n    \"ZIP_CODE\": \"{{zip_code}}\",\n    \"STREET_NUMBER\": \"{{street_number}}\",\n    \"STREET_NAME\": \"{{street_name}}\",\n    \"STREET_DIRECTIONAL\": \"{{street_directional}}\",\n    \"CITY\": \"{{city}}\",\n    \"STATE\": \"{{state}}\",\n    \"COUNTRY\": \"USA\",\n    \"PORTIN_DATE\": \"{{portin_date}}\",\n    \"PORTIN_TIME\": \"{{portin_time}}\",\n    \"CHANNEL\": \"MNP\"\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{mnp_base_url}}",
+          "host": ["{{mnp_base_url}}"]
+        },
+        "description": "Submit a new port-in request. Save REFERENCE_CODE from response for status checks.\n\nMandatory: ICC_ID, P_MSISDN, ACCOUNT_NUMBER, PWD_PIN, CHANNEL"
+      },
+      "response": []
+    },
+    {
+      "name": "1b - INITIATE_PORTIN_REQUEST (ENVELOPE / ITG)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const json = pm.response.json();",
+              "const resp = json.SUBMIT_PORTIN_RESPONSE || json.ENVELOPE?.BODY?.SUBMIT_PORTIN_RESPONSE;",
+              "if (resp && resp.BODY && resp.BODY.REFERENCE_CODE) {",
+              "    pm.environment.set('reference_code', resp.BODY.REFERENCE_CODE);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"ENVELOPE\": {\n    \"HEADER\": {\n      \"TRANSACTION_ID\": \"PORTIN-INIT-{{$timestamp}}\",\n      \"ENTITY\": \"{{entity}}\",\n      \"CHANNEL_REFERENCE\": \"{{channel_reference}}\",\n      \"REQUEST_TYPE\": \"INITIATE_PORTIN_REQUEST\"\n    },\n    \"BODY\": {\n      \"SUBMIT_PORTIN_REQUEST\": {\n        \"ICC_ID\": \"{{icc_id}}\",\n        \"P_MSISDN\": \"{{p_msisdn}}\",\n        \"ACCOUNT_NUMBER\": \"{{account_number}}\",\n        \"PWD_PIN\": \"{{pwd_pin}}\",\n        \"ZIP_CODE\": \"{{zip_code}}\",\n        \"STREET_NUMBER\": \"{{street_number}}\",\n        \"STREET_NAME\": \"{{street_name}}\",\n        \"STREET_DIRECTIONAL\": \"{{street_directional}}\",\n        \"CITY\": \"{{city}}\",\n        \"STATE\": \"{{state}}\",\n        \"COUNTRY\": \"USA\",\n        \"PORTIN_DATE\": \"{{portin_date}}\",\n        \"PORTIN_TIME\": \"{{portin_time}}\",\n        \"CHANNEL\": \"MNP\"\n      }\n    }\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{mnp_base_url}}",
+          "host": ["{{mnp_base_url}}"]
+        },
+        "description": "Alternative request format using Plintron ITG ENVELOPE wrapper. Use if your gateway requires REQUEST_TYPE in header."
+      },
+      "response": []
+    },
+    {
+      "name": "2 - CHECK_PORTIN_STATUS (by REF_CODE)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const json = pm.response.json();",
+              "const body = json.CHECK_PORTOUT_STATUSResponse?.CHECK_PORTOUT_STATUSResult?.BODY",
+              "    || json.GET_PORTIN_DETAILS_RESPONSE?.BODY",
+              "    || json;",
+              "const status = body?.STATUS || body?.BODY?.STATUS;",
+              "console.log('Port-in STATUS:', status);",
+              "pm.test('Status check success', function () {",
+              "    const code = json.ERROR_CODE || json.CHECK_PORTOUT_STATUSResponse?.CHECK_PORTOUT_STATUSResult?.ERROR_CODE;",
+              "    if (code) pm.expect(code).to.eql('0');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"GET_PORTIN_DETAILS_REQUEST\": {\n    \"DETAILS\": {\n      \"REFERENCE_NUMBER\": \"{{reference_code}}\",\n      \"REFERENCE_TYPE\": \"REF_CODE\"\n    }\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{mnp_base_url}}",
+          "host": ["{{mnp_base_url}}"]
+        },
+        "description": "Check port-in status using REFERENCE_CODE from INITIATE_PORTIN response.\n\nPoll until STATUS is: Completed, Rejected, or Cancelled.\n\nStatus values: Initiated, Authorized, InProgress, Completed, Rejected, Cancelled"
+      },
+      "response": []
+    },
+    {
+      "name": "2b - CHECK_PORTIN_STATUS (by ICC_ID)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"GET_PORTIN_DETAILS_REQUEST\": {\n    \"DETAILS\": {\n      \"REFERENCE_NUMBER\": \"{{icc_id}}\",\n      \"REFERENCE_TYPE\": \"ICC_ID\"\n    }\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{mnp_base_url}}",
+          "host": ["{{mnp_base_url}}"]
+        },
+        "description": "Check port-in status using ICC_ID as reference."
+      },
+      "response": []
+    },
+    {
+      "name": "2c - CHECK_PORTIN_STATUS (by P_MSISDN)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"GET_PORTIN_DETAILS_REQUEST\": {\n    \"DETAILS\": {\n      \"REFERENCE_NUMBER\": \"{{p_msisdn}}\",\n      \"REFERENCE_TYPE\": \"PMSISDN\"\n    }\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{mnp_base_url}}",
+          "host": ["{{mnp_base_url}}"]
+        },
+        "description": "Check port-in status using P_MSISDN (ported number) as reference."
+      },
+      "response": []
+    },
+    {
+      "name": "3 - Post Port-In - GET_ACCOUNT_DETAILS (verify MNP_IND)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const json = pm.response.json();",
+              "const body = json.ENVELOPE?.BODY?.GET_ACCOUNT_DETAILS_RESPONSE || json;",
+              "const mnpInd = body?.MNP_IND || body?.mnp_ind;",
+              "console.log('MNP_IND:', mnpInd, '(0=Regular, 1=Ported-in, 2=Ported-out)');",
+              "pm.test('Ported-in verified', function () {",
+              "    if (mnpInd) pm.expect(mnpInd).to.eql('1');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"ENVELOPE\": {\n    \"HEADER\": {\n      \"TRANSACTION_ID\": \"PORTIN-VERIFY-{{$timestamp}}\",\n      \"ENTITY\": \"{{entity}}\",\n      \"CHANNEL_REFERENCE\": \"{{channel_reference}}\"\n    },\n    \"BODY\": {\n      \"GET_ACCOUNT_DETAILS_REQUEST\": {\n        \"MSISDN\": \"{{p_msisdn}}\"\n      }\n    }\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{itg_base_url}}",
+          "host": ["{{itg_base_url}}"]
+        },
+        "description": "After port-in STATUS = Completed, verify MNP_IND = 1 (Ported-in) via OCS/NSS GET_ACCOUNT_DETAILS."
+      },
+      "response": []
+    },
+    {
+      "name": "Optional - INITIATE_CANCEL_PORTIN",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"CANCEL_PORTIN_REQUEST\": {\n    \"DETAILS\": {\n      \"REFERENCE_CODE\": \"{{reference_code}}\",\n      \"P_MSISDN\": \"{{p_msisdn}}\",\n      \"CHANNEL\": \"MNP\"\n    }\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{mnp_base_url}}",
+          "host": ["{{mnp_base_url}}"]
+        },
+        "description": "Cancel a port-in request within donor-defined cancellation window."
+      },
+      "response": []
+    },
+    {
+      "name": "Optional - MODIFY_PORTIN_REQUEST",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"MODIFY_PORTIN_REQUEST\": {\n    \"DETAILS\": {\n      \"REFERENCE_CODE\": \"{{reference_code}}\",\n      \"MSISDN\": \"{{msisdn}}\",\n      \"ICC_ID\": \"{{icc_id}}\",\n      \"P_MSISDN\": \"{{p_msisdn}}\",\n      \"ACCOUNT_NUMBER\": \"{{account_number}}\",\n      \"PWD_PIN\": \"{{pwd_pin}}\",\n      \"ZIP_CODE\": \"{{zip_code}}\",\n      \"STREET_NUMBER\": \"{{street_number}}\",\n      \"STREET_NAME\": \"{{street_name}}\",\n      \"STREET_DIRECTIONAL\": \"{{street_directional}}\",\n      \"CITY\": \"{{city}}\",\n      \"STATE\": \"{{state}}\",\n      \"COUNTRY\": \"USA\",\n      \"CHANNEL\": \"MNP\"\n    }\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{mnp_base_url}}",
+          "host": ["{{mnp_base_url}}"]
+        },
+        "description": "Modify port-in details after initial submission (e.g. after rejection with fixable data)."
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "mnp_base_url",
+      "value": "https://<mnp-proxy-host>/<path>",
+      "type": "string"
+    },
+    {
+      "key": "itg_base_url",
+      "value": "https://<itg-gateway-host>/<path>",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "<your-auth-token>",
+      "type": "string"
+    },
+    {
+      "key": "entity",
+      "value": "ITGSIM",
+      "type": "string"
+    },
+    {
+      "key": "channel_reference",
+      "value": "CCARE",
+      "type": "string"
+    },
+    {
+      "key": "reference_code",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "msisdn",
+      "value": "19876543210",
+      "type": "string"
+    },
+    {
+      "key": "p_msisdn",
+      "value": "19123456780",
+      "type": "string"
+    },
+    {
+      "key": "icc_id",
+      "value": "8914800000123456789",
+      "type": "string"
+    },
+    {
+      "key": "account_number",
+      "value": "ACC998877",
+      "type": "string"
+    },
+    {
+      "key": "pwd_pin",
+      "value": "1234",
+      "type": "string"
+    },
+    {
+      "key": "zip_code",
+      "value": "29201",
+      "type": "string"
+    },
+    {
+      "key": "street_number",
+      "value": "42",
+      "type": "string"
+    },
+    {
+      "key": "street_name",
+      "value": "Main Street",
+      "type": "string"
+    },
+    {
+      "key": "street_directional",
+      "value": "N",
+      "type": "string"
+    },
+    {
+      "key": "city",
+      "value": "Columbia",
+      "type": "string"
+    },
+    {
+      "key": "state",
+      "value": "SC",
+      "type": "string"
+    },
+    {
+      "key": "portin_date",
+      "value": "2026-09-10",
+      "type": "string"
+    },
+    {
+      "key": "portin_time",
+      "value": "10:00",
+      "type": "string"
+    }
+  ]
+}
