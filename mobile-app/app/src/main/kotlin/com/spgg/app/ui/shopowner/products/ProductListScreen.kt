@@ -4,30 +4,26 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,6 +36,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.spgg.app.domain.Product
+import com.spgg.app.ui.auth.LocalShopCapabilities
+import com.spgg.app.ui.components.EmptyState
+import com.spgg.app.ui.components.SpggScaffold
+import com.spgg.app.ui.components.SpggSurfaceCard
+import com.spgg.app.ui.components.StatusChip
 
 private sealed interface ActiveDialog {
     data object None : ActiveDialog
@@ -50,10 +51,10 @@ private sealed interface ActiveDialog {
     data class ConfirmArchive(val product: Product) : ActiveDialog
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductListScreen(onBack: () -> Unit, viewModel: ProductListViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val canManage = LocalShopCapabilities.current.canManageProducts
     var activeDialog by remember { mutableStateOf<ActiveDialog>(ActiveDialog.None) }
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -64,20 +65,17 @@ fun ProductListScreen(onBack: () -> Unit, viewModel: ProductListViewModel = hilt
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Products") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
-        },
+    SpggScaffold(
+        title = "Products",
+        onBack = onBack,
         floatingActionButton = {
-            FloatingActionButton(onClick = { activeDialog = ActiveDialog.AddProduct }) {
-                Icon(Icons.Default.Add, contentDescription = "Add product")
+            if (canManage) {
+                FloatingActionButton(
+                    onClick = { activeDialog = ActiveDialog.AddProduct },
+                    shape = MaterialTheme.shapes.large
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Add product")
+                }
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) { Snackbar(it) } }
@@ -90,18 +88,23 @@ fun ProductListScreen(onBack: () -> Unit, viewModel: ProductListViewModel = hilt
             }
             uiState.products.isEmpty() -> {
                 Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                    Text("No products yet — tap + to add one")
+                    EmptyState(
+                        title = "No products yet",
+                        message = if (canManage) "Tap + to add your first bottle category." else "Your shop hasn't published products yet.",
+                        icon = Icons.Default.Inventory2
+                    )
                 }
             }
             else -> {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().padding(padding),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(uiState.products, key = { it.id }) { product ->
                         ProductRow(
                             product = product,
+                            canManage = canManage,
                             onEdit = { activeDialog = ActiveDialog.EditProduct(product) },
                             onChangePrice = { activeDialog = ActiveDialog.ChangePrice(product) },
                             onViewHistory = { activeDialog = ActiveDialog.ViewHistory(product) },
@@ -165,6 +168,7 @@ fun ProductListScreen(onBack: () -> Unit, viewModel: ProductListViewModel = hilt
 @Composable
 private fun ProductRow(
     product: Product,
+    canManage: Boolean,
     onEdit: () -> Unit,
     onChangePrice: () -> Unit,
     onViewHistory: () -> Unit,
@@ -173,46 +177,49 @@ private fun ProductRow(
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
-    Card(Modifier.fillMaxWidth()) {
+    SpggSurfaceCard {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(Modifier.weight(1f)) {
                 Text(product.name, style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(4.dp))
                 Text(
-                    "Price: ${product.unitPrice}  ·  Deposit: ${product.depositAmount}",
-                    style = MaterialTheme.typography.bodySmall
+                    "Price ${product.unitPrice}  ·  Deposit ${product.depositAmount}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                Spacer(Modifier.height(8.dp))
+                StatusChip(if (product.isAvailable) "AVAILABLE" else "UNAVAILABLE")
             }
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(if (product.isAvailable) "Available" else "Unavailable", style = MaterialTheme.typography.labelSmall)
+            if (canManage) {
                 Switch(checked = product.isAvailable, onCheckedChange = { onToggleAvailability() })
-            }
-            Box {
-                IconButton(onClick = { menuExpanded = true }) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "More actions")
-                }
-                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                    DropdownMenuItem(
-                        text = { Text("Edit") },
-                        leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
-                        onClick = { menuExpanded = false; onEdit() }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Change price") },
-                        onClick = { menuExpanded = false; onChangePrice() }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Price history") },
-                        leadingIcon = { Icon(Icons.Default.History, contentDescription = null) },
-                        onClick = { menuExpanded = false; onViewHistory() }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Archive") },
-                        leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) },
-                        onClick = { menuExpanded = false; onArchive() }
-                    )
+                Box {
+                    IconButton(onClick = { menuExpanded = true }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "More actions")
+                    }
+                    DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                        DropdownMenuItem(
+                            text = { Text("Edit") },
+                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                            onClick = { menuExpanded = false; onEdit() }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Change price") },
+                            onClick = { menuExpanded = false; onChangePrice() }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Price history") },
+                            leadingIcon = { Icon(Icons.Default.History, contentDescription = null) },
+                            onClick = { menuExpanded = false; onViewHistory() }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Archive") },
+                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) },
+                            onClick = { menuExpanded = false; onArchive() }
+                        )
+                    }
                 }
             }
         }

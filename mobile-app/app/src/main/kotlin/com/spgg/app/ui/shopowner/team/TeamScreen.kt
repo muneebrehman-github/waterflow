@@ -1,30 +1,35 @@
 package com.spgg.app.ui.shopowner.team
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,10 +42,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.spgg.app.domain.StaffSummary
+import com.spgg.app.ui.components.EmptyState
+import com.spgg.app.ui.components.SpggScaffold
+import com.spgg.app.ui.components.SpggSurfaceCard
+import com.spgg.app.ui.components.StatusChip
 
 private val TEAM_ROLES = listOf("STAFF", "DELIVERY_BOY")
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TeamScreen(onBack: () -> Unit, viewModel: TeamViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -54,19 +62,14 @@ fun TeamScreen(onBack: () -> Unit, viewModel: TeamViewModel = hiltViewModel()) {
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Team") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
-        },
+    SpggScaffold(
+        title = "Team",
+        onBack = onBack,
         floatingActionButton = {
-            FloatingActionButton(onClick = { showAddDialog = true }) {
+            FloatingActionButton(
+                onClick = { showAddDialog = true },
+                shape = MaterialTheme.shapes.large
+            ) {
                 Icon(Icons.Default.Add, contentDescription = "Add team member")
             }
         },
@@ -77,12 +80,16 @@ fun TeamScreen(onBack: () -> Unit, viewModel: TeamViewModel = hiltViewModel()) {
                 CircularProgressIndicator()
             }
             uiState.members.isEmpty() -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Text("No staff or delivery boys yet")
+                EmptyState(
+                    title = "Build your team",
+                    message = "Add staff and delivery boys so orders can move from shop to door.",
+                    icon = Icons.Default.Groups
+                )
             }
             else -> LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(uiState.members, key = { it.id }) { member -> TeamMemberCard(member) }
             }
@@ -103,20 +110,23 @@ fun TeamScreen(onBack: () -> Unit, viewModel: TeamViewModel = hiltViewModel()) {
 
 @Composable
 private fun TeamMemberCard(member: StaffSummary) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp)) {
-            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                Text(member.fullName, style = MaterialTheme.typography.titleMedium)
-                Text(member.role.replace('_', ' '), style = MaterialTheme.typography.labelMedium)
-            }
-            Text(member.phone, style = MaterialTheme.typography.bodySmall)
-            Text(member.email, style = MaterialTheme.typography.bodySmall)
-            Text(member.status, style = MaterialTheme.typography.bodySmall)
+    SpggSurfaceCard {
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(member.fullName, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            StatusChip(status = member.role)
         }
+        Spacer(Modifier.height(8.dp))
+        Text(member.phone, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(member.email, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(8.dp))
+        StatusChip(status = member.status)
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AddTeamMemberDialog(
     isSubmitting: Boolean,
@@ -132,16 +142,40 @@ private fun AddTeamMemberDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Team Member") },
+        title = { Text("Add team member") },
         text = {
             Column {
-                OutlinedTextField(value = fullName, onValueChange = { fullName = it }, label = { Text("Full name") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    value = fullName,
+                    onValueChange = { fullName = it },
+                    label = { Text("Full name") },
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.fillMaxWidth()
+                )
                 Spacer(Modifier.height(8.dp))
-                OutlinedTextField(value = phone, onValueChange = { phone = it }, label = { Text("Phone") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    value = phone,
+                    onValueChange = { phone = it },
+                    label = { Text("Phone") },
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.fillMaxWidth()
+                )
                 Spacer(Modifier.height(8.dp))
-                OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Email") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email") },
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.fillMaxWidth()
+                )
                 Spacer(Modifier.height(8.dp))
-                OutlinedTextField(value = password, onValueChange = { password = it }, label = { Text("Password") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Password") },
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.fillMaxWidth()
+                )
                 Spacer(Modifier.height(8.dp))
                 Box {
                     OutlinedTextField(
@@ -149,6 +183,7 @@ private fun AddTeamMemberDialog(
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Role") },
+                        shape = MaterialTheme.shapes.medium,
                         trailingIcon = {
                             IconButton(onClick = { roleExpanded = true }) {
                                 Icon(Icons.Default.ArrowDropDown, contentDescription = "Choose role")
@@ -158,7 +193,10 @@ private fun AddTeamMemberDialog(
                     )
                     DropdownMenu(expanded = roleExpanded, onDismissRequest = { roleExpanded = false }) {
                         TEAM_ROLES.forEach { option ->
-                            DropdownMenuItem(text = { Text(option.replace('_', ' ')) }, onClick = { role = option; roleExpanded = false })
+                            DropdownMenuItem(
+                                text = { Text(option.replace('_', ' ')) },
+                                onClick = { role = option; roleExpanded = false }
+                            )
                         }
                     }
                 }

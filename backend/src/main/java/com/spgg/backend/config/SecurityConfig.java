@@ -1,5 +1,6 @@
 package com.spgg.backend.config;
 
+import com.spgg.backend.admin.web.SuperAdminLoginSuccessHandler;
 import com.spgg.backend.security.JwtAuthenticationFilter;
 import com.spgg.backend.security.JwtTokenProvider;
 import com.spgg.backend.security.TenantFilter;
@@ -8,6 +9,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -16,6 +18,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -25,7 +28,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    private static final String[] PUBLIC_ENDPOINTS = {
+    private static final String[] API_PUBLIC_ENDPOINTS = {
             "/api/v1/auth/**",
             "/api/v1/shops/register",
             "/api/v1/shops/directory",
@@ -43,8 +46,12 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder(12);
     }
 
+    /**
+     * Stateless JWT chain for mobile / REST / Control Center. Unchanged contract for /api/**.
+     */
     @Bean
-    public SecurityFilterChain securityFilterChain(
+    @Order(1)
+    public SecurityFilterChain apiSecurityFilterChain(
             HttpSecurity http,
             JwtTokenProvider jwtTokenProvider,
             EntityManagerFactory entityManagerFactory,
@@ -53,11 +60,17 @@ public class SecurityConfig {
         TenantFilter tenantFilter = new TenantFilter(entityManagerFactory);
 
         http
+                .securityMatcher(
+                        "/api/**",
+                        "/actuator/**",
+                        "/swagger-ui/**",
+                        "/swagger-ui.html",
+                        "/v3/api-docs/**")
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+                        .requestMatchers(API_PUBLIC_ENDPOINTS).permitAll()
                         .requestMatchers("/api/v1/internal/**").hasRole("SUPER_ADMIN")
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex
@@ -72,6 +85,43 @@ public class SecurityConfig {
         return http.build();
     }
 
+    /**
+     * Session + form-login chain for the Thymeleaf Super Admin portal.
+     */
+    @Bean
+    @Order(2)
+    public SecurityFilterChain adminUiSecurityFilterChain(
+            HttpSecurity http, SuperAdminLoginSuccessHandler successHandler) throws Exception {
+        http
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(
+                                "/admin/login",
+                                "/css/**",
+                                "/js/**",
+                                "/images/**",
+                                "/favicon.ico",
+                                "/error")
+                        .permitAll()
+                        .requestMatchers("/admin/**").hasRole("SUPER_ADMIN")
+                        .anyRequest().permitAll())
+                .formLogin(form -> form
+                        .loginPage("/admin/login")
+                        .loginProcessingUrl("/admin/login")
+                        .usernameParameter("email")
+                        .passwordParameter("password")
+                        .successHandler(successHandler)
+                        .failureUrl("/admin/login?error=credentials"))
+                .logout(logout -> logout
+                        .logoutRequestMatcher(new AntPathRequestMatcher("/admin/logout", "POST"))
+                        .logoutSuccessUrl("/admin/login?logout")
+                        .invalidateHttpSession(true)
+                        .deleteCookies("JSESSIONID"))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**"));
+
+        return http.build();
+    }
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -81,7 +131,7 @@ public class SecurityConfig {
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
+        source.registerCorsConfiguration("/api/**", configuration);
         return source;
     }
 }

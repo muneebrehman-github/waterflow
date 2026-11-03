@@ -1,0 +1,29 @@
+# IDE / OS
+.vscode/
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Secrets & local credentials
+Documents/
+**/google-services.json
+**/service-account.json
+**/*serviceAccount*.json
+.env
+.env.*
+!.env.example
+
+# Build / cache
+**/node_modules/
+**/dist/
+**/build/
+mobile-app/.gradle-user-home/
+mobile-app/.gradle/
+mobile-app/local.properties
+backend/target/
+*.log
+
+# Local tooling secrets
+backend/tools/.local-certs/
+

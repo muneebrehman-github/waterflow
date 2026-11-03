@@ -37,6 +37,17 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.spgg.app.domain.CustomerAddress
+import com.spgg.app.ui.components.EmptyState
+import com.spgg.app.ui.components.IconBadge
+import com.spgg.app.ui.components.SpggScaffold
+import com.spgg.app.ui.components.SpggSurfaceCard
+import com.spgg.app.ui.components.StatusChip
+import com.spgg.app.ui.theme.CoralPulse
+import com.spgg.app.ui.theme.CoralSoft
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Work
+import androidx.compose.material3.ExtendedFloatingActionButton
 
 private sealed interface AddressDialog {
     data object None : AddressDialog
@@ -59,21 +70,17 @@ fun AddressListScreen(onBack: () -> Unit, viewModel: AddressListViewModel = hilt
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("My Addresses") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
-        },
+    SpggScaffold(
+        title = "My Addresses",
+        onBack = onBack,
         floatingActionButton = {
-            FloatingActionButton(onClick = { dialog = AddressDialog.Add }) {
-                Icon(Icons.Default.Add, contentDescription = "Add address")
-            }
+            ExtendedFloatingActionButton(
+                onClick = { dialog = AddressDialog.Add },
+                icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                text = { Text("Add address") },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) { Snackbar(it) } }
     ) { padding ->
@@ -85,14 +92,18 @@ fun AddressListScreen(onBack: () -> Unit, viewModel: AddressListViewModel = hilt
             }
             uiState.addresses.isEmpty() -> {
                 Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                    Text("No addresses yet — tap + to add one")
+                    EmptyState(
+                        title = "No addresses yet",
+                        message = "Add where you'd like your water delivered.",
+                        icon = Icons.Default.LocationOn
+                    )
                 }
             }
             else -> {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().padding(padding),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 96.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(uiState.addresses, key = { it.id }) { address ->
                         AddressRow(
@@ -148,24 +159,39 @@ private fun AddressRow(
     onSetDefault: () -> Unit,
     onDelete: () -> Unit
 ) {
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(address.label, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                if (address.isDefault) {
-                    AssistChip(onClick = {}, label = { Text("Default") })
+    SpggSurfaceCard {
+        Row(verticalAlignment = Alignment.Top) {
+            IconBadge(
+                icon = if (address.label.contains("work", ignoreCase = true) || address.label.contains("office", ignoreCase = true)) {
+                    Icons.Default.Work
+                } else {
+                    Icons.Default.Home
+                },
+                tint = CoralPulse,
+                background = CoralSoft,
+                size = 42
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(address.label, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f, fill = false))
+                    if (address.isDefault) {
+                        Spacer(Modifier.width(8.dp))
+                        StatusChip("DEFAULT")
+                    }
                 }
+                Text(address.addressText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                address.area?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
-            Text(address.addressText, style = MaterialTheme.typography.bodyMedium)
-            address.area?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-            Spacer(Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (!address.isDefault) {
-                    OutlinedButton(onClick = onSetDefault) { Text("Set default") }
-                }
-                IconButton(onClick = onEdit) { Icon(Icons.Default.Edit, contentDescription = "Edit") }
-                IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, contentDescription = "Remove") }
+        }
+        Spacer(Modifier.height(10.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (!address.isDefault) {
+                TextButton(onClick = onSetDefault) { Text("Set as default") }
             }
+            Spacer(Modifier.weight(1f))
+            IconButton(onClick = onEdit) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.primary) }
+            IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, contentDescription = "Remove", tint = MaterialTheme.colorScheme.error) }
         }
     }
 }

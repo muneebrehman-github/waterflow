@@ -71,7 +71,7 @@ fun RegisterScreen(
             } else {
                 Box(Modifier.fillMaxWidth()) {
                     OutlinedTextField(
-                        value = selectedShop?.name ?: "",
+                        value = selectedShop?.pickerLabel ?: "",
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Choose your shop") },
@@ -85,7 +85,7 @@ fun RegisterScreen(
                     DropdownMenu(expanded = shopMenuExpanded, onDismissRequest = { shopMenuExpanded = false }) {
                         uiState.shops.forEach { shop ->
                             DropdownMenuItem(
-                                text = { Text(shop.name) },
+                                text = { Text(shop.pickerLabel) },
                                 onClick = {
                                     selectedShop = shop
                                     shopMenuExpanded = false

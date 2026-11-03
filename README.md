@@ -1,15 +1,14 @@
 # SaafPaniGharGhar (WaterFlow SaaS)
 
-Multi-tenant water filtration plant / delivery SaaS. Three sub-projects:
+Multi-tenant water filtration plant / delivery SaaS. Two sub-projects:
 
 | Folder | Stack | Who uses it |
 |---|---|---|
-| [`backend/`](backend) | Java 17, Spring Boot 3.x, MariaDB, Redis | REST API for everything |
+| [`backend/`](backend) | Java 17, Spring Boot 3.x, MariaDB, Redis, Thymeleaf | REST API + Super Admin portal |
 | [`mobile-app/`](mobile-app) | Kotlin, Jetpack Compose, Hilt, Retrofit | Shop Owner, Staff, Delivery Boy, Customer |
-| [`admin-portal/`](admin-portal) | React + TypeScript + MUI | Super Admin |
 
 Built feature-by-feature. This first slice covers **Auth + Shop registration &
-Super Admin approval**, end to end across all three. See the SRS at
+Super Admin approval**, end to end across backend and mobile. See the SRS at
 `D:\Personal Data\FTS\Projects\Water Filter Saas\WaterFlow_SRS_v1.0.0_DRAFT.docx`
 for the full requirements this is being built against.
 
@@ -17,8 +16,7 @@ for the full requirements this is being built against.
 
 - **JDK 17** (already installed at `C:\Program Files\Java\jdk-17` on this machine)
 - **Maven** (already installed)
-- **Docker Desktop** (already installed) — runs MariaDB + Redis locally
-- **Node.js 18+** (already installed) — for the admin portal
+- **Docker Desktop** (already installed) — runs MariaDB + Redis + backend locally
 - **Android Studio + Android SDK** (already installed) — for `mobile-app/`,
   and/or Docker (see that folder's section below for why the build is
   containerized on this machine).
@@ -41,29 +39,25 @@ since there's no image rebuild step.
 
 - API base URL: `http://localhost:8081/api/v1`
 - Swagger UI: `http://localhost:8081/swagger-ui.html`
+- Super Admin portal: `http://localhost:8081/admin/login`
 - A default Super Admin is auto-created on first boot:
   `admin@saafpanigharghar.local` / `ChangeMe123!` (override via
   `SUPER_ADMIN_EMAIL` / `SUPER_ADMIN_PASSWORD` env vars — do this for anything
   beyond local dev).
 
-Quick manual test via Swagger or curl:
+### Super Admin portal (Thymeleaf)
+
+Served by the same backend process (session form-login, separate from JWT API auth):
+
+- Login: `http://localhost:8081/admin/login`
+- Shops: `http://localhost:8081/admin/shops`
+
+Use the Super Admin credentials above to approve/reject/suspend/reinstate shops.
+
+Quick API smoke test via Swagger or curl:
 1. `POST /api/v1/shops/register` — register a shop (creates a PENDING owner + PENDING_APPROVAL shop).
-2. `POST /api/v1/auth/login` as the Super Admin.
-3. `GET /api/v1/admin/shops?status=PENDING_APPROVAL` (with the Super Admin's bearer token) — see it listed.
-4. `POST /api/v1/admin/shops/{id}/approve` — activates the shop.
-5. `POST /api/v1/auth/login` as the shop owner — now succeeds.
-
-## Running the admin portal (Super Admin)
-
-```bash
-cd admin-portal
-npm install
-npm run dev
-```
-
-Opens on `http://localhost:5173`. Copy `.env.example` to `.env` if the backend
-isn't on the default `http://localhost:8081/api/v1`. Log in with the Super
-Admin credentials above to approve/reject/suspend/reinstate shops.
+2. Approve it in the Super Admin portal (or via `POST /api/v1/admin/shops/{id}/approve` with a Super Admin JWT).
+3. `POST /api/v1/auth/login` as the shop owner — now succeeds.
 
 ## Running the mobile app (Shop Owner, Staff, Delivery Boy, Customer)
 
@@ -120,7 +114,7 @@ runs elsewhere (an Android *emulator* specifically reaches the host's
 
 Log in with a shop owner account created via the registration flow above
 (after Super Admin approval) — Super Admin accounts are rejected by this app
-on purpose; that role only uses the admin portal.
+on purpose; that role only uses the backend Super Admin portal.
 
 ## Architecture notes
 

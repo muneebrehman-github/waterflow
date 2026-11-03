@@ -9,9 +9,10 @@ import okhttp3.Response
 import okhttp3.Route
 
 /**
- * Invoked by OkHttp automatically on a 401. Uses a raw AuthApi (built from a
- * client with no interceptor/authenticator of its own — see NetworkModule) to
- * avoid recursing back into itself while refreshing.
+ * Invoked by OkHttp automatically on a 401 (or 403 when the caller sent a
+ * Bearer token, covering legacy backend responses). Uses a raw AuthApi (built
+ * from a client with no interceptor/authenticator of its own — see NetworkModule)
+ * to avoid recursing back into itself while refreshing.
  */
 class TokenAuthenticator @Inject constructor(
     private val sessionStore: SessionStore,
@@ -19,6 +20,7 @@ class TokenAuthenticator @Inject constructor(
 ) : Authenticator {
 
     override fun authenticate(route: Route?, response: Response): Request? {
+        if (!shouldAttemptRefresh(response)) return null
         if (priorResponseCount(response) >= 2) return null // already retried once — give up
 
         val session = sessionStore.getSession() ?: return null
@@ -47,5 +49,12 @@ class TokenAuthenticator @Inject constructor(
             prior = prior.priorResponse
         }
         return count
+    }
+
+    private fun shouldAttemptRefresh(response: Response): Boolean {
+        if (response.code == 401) return true
+        if (response.code != 403) return false
+        // Only treat 403 as "token stale" when we actually sent credentials.
+        return response.request.header("Authorization")?.startsWith("Bearer ") == true
     }
 }

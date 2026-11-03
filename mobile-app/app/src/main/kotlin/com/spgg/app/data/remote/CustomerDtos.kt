@@ -44,7 +44,8 @@ data class ShopDirectoryResponseDto(
     val id: Long,
     val name: String,
     val description: String?,
-    val address: String?
+    val address: String?,
+    val contactEmail: String? = null
 )
 
 @Serializable

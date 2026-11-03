@@ -41,7 +41,7 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    /** Returns the raw token plus its jti, so the caller can index the jti in Redis. */
+    /** Returns the raw token plus its jti, so the caller can persist the jti for revocation. */
     public GeneratedRefreshToken generateRefreshToken(User user) {
         Instant now = Instant.now();
         String jti = UUID.randomUUID().toString();

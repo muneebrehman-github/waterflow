@@ -18,6 +18,8 @@ object Routes {
     const val DELIVERY_BOY_HOME = "home/delivery_boy"
     const val CUSTOMER_HOME = "home/customer"
     const val REGISTER = "register"
+    const val SHOP_REGISTER = "shop_register"
+    const val PENDING_APPROVAL = "pending_approval"
     const val CUSTOMER_PROFILE = "customer/profile"
     const val CUSTOMER_ADDRESSES = "customer/addresses"
     const val NEW_ORDER = "customer/new_order"
@@ -34,6 +36,8 @@ object Routes {
     fun orderDetail(orderId: Long) = "customer/orders/$orderId"
 
     fun deliveryDetail(orderId: Long) = "delivery_boy/orders/$orderId"
+
+    fun pendingApproval(shopName: String) = "pending_approval?shopName=${java.net.URLEncoder.encode(shopName, "UTF-8")}"
 }
 
 /** SUPER_ADMIN never reaches here — AuthViewModel rejects that role's login

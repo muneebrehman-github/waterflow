@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/fragments :: head(${pageTitle})}"></head>
+<body>
+<div class="app-shell">
+  <div id="sidebarBackdrop" class="sidebar-backdrop"></div>
+  <div th:replace="~{admin/fragments :: sidebar(${activeNav}, ${userFullName})}"></div>
+
+  <div class="app-main">
+    <div th:replace="~{admin/fragments :: topbar(${pageTitle})}"></div>
+
+    <main class="content">
+      <div th:if="${error}" class="alert alert-error" style="margin-bottom:1rem" th:text="${error}"></div>
+
+      <div class="page-header">
+        <div>
+          <h2>Shop network</h2>
+          <p>
+            Review registrations, keep active partners healthy, and intervene when a shop needs to
+            pause.
+          </p>
+        </div>
+        <div class="page-header-aside">
+          <div class="mark">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+              <path d="M4 6h16l-1.2 3.2A3 3 0 0 1 16 12H8a3 3 0 0 1-2.8-2.8L4 6zm2 7h12v7H6v-7z"/>
+            </svg>
+          </div>
+          <div>
+            <div class="muted" style="font-weight:650">Current view</div>
+            <strong th:text="${currentStatus != null ? #strings.replace(currentStatus.name(), '_', ' ') : 'All'}">All</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat-card" style="--accent: var(--wave); animation-delay:40ms">
+          <div class="label">Network</div>
+          <div class="value" th:text="${stats.total()}">0</div>
+        </div>
+        <div class="stat-card" style="--accent:#F59E0B; animation-delay:90ms">
+          <div class="label">Pending</div>
+          <div class="value" th:text="${stats.pending()}">0</div>
+        </div>
+        <div class="stat-card" style="--accent:#14B8A6; animation-delay:140ms">
+          <div class="label">Active</div>
+          <div class="value" th:text="${stats.active()}">0</div>
+        </div>
+        <div class="stat-card" style="--accent:#E11D48; animation-delay:190ms">
+          <div class="label">Suspended</div>
+          <div class="value" th:text="${stats.suspended()}">0</div>
+        </div>
+      </div>
+
+      <section class="panel">
+        <nav class="tabs" aria-label="Shop status filters">
+          <a th:each="tab : ${tabs}"
+             th:href="${tab.status() == null} ? @{/admin/shops} : @{/admin/shops(status=${tab.status()})}"
+             th:classappend="${currentStatus == tab.status()} ? ' active'">
+            <span class="hide-mobile" th:text="${tab.label()}">All</span>
+            <span class="hide-desktop" th:text="${tab.shortLabel()}" style="display:none">All</span>
+          </a>
+        </nav>
+
+        <div class="table-wrap">
+          <table class="data">
+            <thead>
+            <tr>
+              <th>Shop</th>
+              <th>Owner</th>
+              <th class="hide-mobile">Contact</th>
+              <th>Status</th>
+              <th style="text-align:right">Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:if="${#lists.isEmpty(shops)}">
+              <td colspan="5">
+                <div class="empty-state">
+                  <div class="icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                      <path d="M4 6h16l-1.2 3.2A3 3 0 0 1 16 12H8a3 3 0 0 1-2.8-2.8L4 6zm2 7h12v7H6v-7z"/>
+                    </svg>
+                  </div>
+                  <strong>No shops in this category</strong>
+                  <div class="muted">Try another filter or wait for new registrations.</div>
+                </div>
+              </td>
+            </tr>
+            <tr th:each="shop, iter : ${shops}" th:style="|animation-delay:${iter.index < 8 ? iter.index * 40 : 320}ms|">
+              <td>
+                <div class="shop-name" th:text="${shop.name()}">Shop</div>
+                <div class="muted" th:text="${shop.address() != null ? shop.address() : 'No address on file'}">Address</div>
+              </td>
+              <td>
+                <strong th:text="${shop.ownerName()}">Owner</strong>
+              </td>
+              <td class="hide-mobile">
+                <div th:text="${shop.email()}">email</div>
+                <div class="muted" th:text="${shop.phone()}">phone</div>
+              </td>
+              <td>
+                <span class="chip"
+                      th:classappend="${shop.status().name() == 'PENDING_APPROVAL'} ? ' chip-pending' :
+                                      (${shop.status().name() == 'ACTIVE'} ? ' chip-active' :
+                                      (${shop.status().name() == 'SUSPENDED'} ? ' chip-suspended' : ' chip-muted'))"
+                      th:text="${#strings.capitalize(#strings.replace(#strings.toLowerCase(shop.status().name()), '_', ' '))}">
+                  Active
+                </span>
+              </td>
+              <td>
+                <div class="actions">
+                  <form th:if="${shop.status().name() == 'PENDING_APPROVAL'}"
+                        th:action="@{/admin/shops/{id}/approve(id=${shop.id()})}"
+                        method="post">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                    <input type="hidden" name="status" th:if="${currentStatus != null}" th:value="${currentStatus}"/>
+                    <button class="btn btn-primary btn-sm" type="submit">Approve</button>
+                  </form>
+                  <button th:if="${shop.status().name() == 'PENDING_APPROVAL'}"
+                          class="btn btn-danger btn-sm"
+                          type="button"
+                          data-reason-action="reject"
+                          th:attr="data-shop-id=${shop.id()},data-status=${currentStatus}">
+                    Reject
+                  </button>
+                  <button th:if="${shop.status().name() == 'ACTIVE'}"
+                          class="btn btn-danger btn-sm"
+                          type="button"
+                          data-reason-action="suspend"
+                          th:attr="data-shop-id=${shop.id()},data-status=${currentStatus}">
+                    Suspend
+                  </button>
+                  <form th:if="${shop.status().name() == 'SUSPENDED'}"
+                        th:action="@{/admin/shops/{id}/reinstate(id=${shop.id()})}"
+                        method="post">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                    <input type="hidden" name="status" th:if="${currentStatus != null}" th:value="${currentStatus}"/>
+                    <button class="btn btn-primary btn-sm" type="submit">Reinstate</button>
+                  </form>
+                  <span class="muted"
+                        th:if="${shop.status().name() != 'PENDING_APPROVAL' and shop.status().name() != 'ACTIVE' and shop.status().name() != 'SUSPENDED'}">
+                    No actions
+                  </span>
+                </div>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<div id="reasonModal" class="modal-backdrop" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="reasonTitle">
+    <h3 id="reasonTitle">Reason</h3>
+    <p>Add a clear reason so shop owners and ops know what happened. This is recorded with the action.</p>
+    <form id="reasonForm" method="post">
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+      <input type="hidden" id="reasonStatus" name="status"/>
+      <div class="field">
+        <label for="reasonInput">Reason</label>
+        <textarea id="reasonInput" name="reason" rows="3" required maxlength="500" placeholder="Describe why this action is needed…"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" type="button" data-close-modal>Cancel</button>
+        <button id="reasonConfirm" class="btn btn-danger-solid" type="submit">Confirm</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="toast" class="toast" th:if="${toast}" th:text="${toast}"></div>
+<script th:src="@{/js/admin.js}"></script>
+<style>
+  @media (max-width: 960px) {
+    .tabs a .hide-desktop { display: inline !important; }
+    .tabs a .hide-mobile { display: none !important; }
+  }
+</style>
+</body>
+</html>

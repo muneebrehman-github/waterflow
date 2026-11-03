@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class NewOrderUiState(
+    val shopName: String = "",
     val products: List<Product> = emptyList(),
     val addresses: List<CustomerAddress> = emptyList(),
     val quantities: Map<Long, Int> = emptyMap(),
@@ -51,12 +52,14 @@ class NewOrderViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             runCatching {
+                val profile = customerRepository.getMyProfile()
                 val products = productRepository.listAvailable()
                 val addresses = customerRepository.listAddresses()
-                products to addresses
-            }.onSuccess { (products, addresses) ->
+                Triple(profile, products, addresses)
+            }.onSuccess { (profile, products, addresses) ->
                 _uiState.update {
                     it.copy(
+                        shopName = profile.shopName,
                         products = products,
                         addresses = addresses,
                         selectedAddressId = addresses.find { a -> a.isDefault }?.id ?: addresses.firstOrNull()?.id,

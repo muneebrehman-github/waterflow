@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="theme-color" content="#071422"/>
+  <title th:text="${title} + ' · SaafPaniGharGhar'">Admin · SaafPaniGharGhar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"/>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" th:href="@{/css/admin.css}"/>
+</head>
+<body>
+<div th:fragment="brand(inverted, subtitle, size)" class="brand" th:classappend="${inverted} ? ' inverted'">
+  <div class="brand-mark" th:classappend="${size == 'lg'} ? ' lg'">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 2c-3.5 4.3-6 7.7-6 11a6 6 0 0 0 12 0c0-3.3-2.5-6.7-6-11z"/>
+    </svg>
+  </div>
+  <div>
+    <div class="brand-wordmark">
+      SaafPani<span class="accent">GharGhar</span>
+    </div>
+    <span class="brand-sub" th:if="${subtitle}" th:text="${subtitle}">Super Admin</span>
+  </div>
+</div>
+
+<aside th:fragment="sidebar(activeNav, userFullName)" id="sidebar" class="sidebar" aria-label="admin navigation">
+  <div class="sidebar-inner">
+    <div class="sidebar-brand">
+      <div th:replace="~{admin/fragments :: brand(true, 'Super Admin', 'md')}"></div>
+    </div>
+
+    <p class="sidebar-label">Operations</p>
+    <ul class="nav-list">
+      <li class="nav-item">
+        <a th:href="@{/admin/shops}" th:classappend="${activeNav == 'shops'} ? ' active'">
+          <span class="nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 6h16l-1.2 3.2A3 3 0 0 1 16 12H8a3 3 0 0 1-2.8-2.8L4 6zm2 7h12v7H6v-7z"/>
+            </svg>
+          </span>
+          <span class="nav-copy">
+            <strong>Shops</strong>
+            <span>Lifecycle &amp; approvals</span>
+          </span>
+        </a>
+      </li>
+    </ul>
+
+    <div class="sidebar-card">
+      <div class="label">Unified ops</div>
+      <div class="title">FTS Control Center</div>
+      <a class="btn btn-outline btn-sm btn-block" href="http://localhost:8010" target="_blank" rel="noreferrer">
+        Open console
+      </a>
+    </div>
+
+    <div class="sidebar-user">
+      <div class="avatar" th:text="${#strings.substring(userFullName,0,1)}">A</div>
+      <div class="meta">
+        <strong th:text="${userFullName}">Admin</strong>
+        <span class="role-chip">SUPER ADMIN</span>
+      </div>
+      <form th:action="@{/admin/logout}" method="post">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+        <button class="icon-btn" type="submit" title="Log out" aria-label="Log out">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M16 13v-2H7V8l-5 4 5 4v-3h9zm3-10H11a2 2 0 0 0-2 2v3h2V5h8v14h-8v-3H9v3a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/>
+          </svg>
+        </button>
+      </form>
+    </div>
+  </div>
+</aside>
+
+<header th:fragment="topbar(pageTitle)" class="topbar">
+  <button id="menuToggle" class="menu-toggle" type="button" aria-label="Open menu">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#102A43">
+      <path d="M4 7h16v2H4V7zm0 4h16v2H4v-2zm0 4h16v2H4v-2z"/>
+    </svg>
+  </button>
+  <div style="flex:1;min-width:0">
+    <p class="eyebrow hide-mobile">Command surface</p>
+    <h1 th:text="${pageTitle}">Shops</h1>
+  </div>
+  <span class="chip chip-live">Live</span>
+</header>
+</body>
+</html>

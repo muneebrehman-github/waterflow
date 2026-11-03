@@ -4,22 +4,20 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -32,8 +30,20 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.spgg.app.domain.Order
+import com.spgg.app.ui.components.AmountRow
+import com.spgg.app.ui.components.EmptyState
+import com.spgg.app.ui.components.IconBadge
+import com.spgg.app.ui.components.OrderStatusTracker
+import com.spgg.app.ui.components.SectionHeader
+import com.spgg.app.ui.components.SpggScaffold
+import com.spgg.app.ui.components.SpggSurfaceCard
+import com.spgg.app.ui.components.StatusChip
+import com.spgg.app.ui.components.formatRs
+import com.spgg.app.ui.components.formatTimestamp
+import com.spgg.app.ui.theme.DangerRed
+import com.spgg.app.ui.theme.Lagoon
+import com.spgg.app.ui.theme.LagoonMist
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OrderDetailScreen(onBack: () -> Unit, viewModel: OrderDetailViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -47,18 +57,10 @@ fun OrderDetailScreen(onBack: () -> Unit, viewModel: OrderDetailViewModel = hilt
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Order Detail") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) { Snackbar(it) } }
+    SpggScaffold(
+        title = uiState.order?.let { "Order #${it.id}" } ?: "Order",
+        onBack = onBack,
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         val order = uiState.order
         when {
@@ -66,64 +68,29 @@ fun OrderDetailScreen(onBack: () -> Unit, viewModel: OrderDetailViewModel = hilt
                 CircularProgressIndicator()
             }
             order == null -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Text("Couldn't load order")
+                EmptyState(title = "Couldn't load order", message = "Pull back and try again in a moment.")
             }
-            else -> Column(
-                Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .verticalScroll(rememberScrollState())
-                    .padding(24.dp)
-            ) {
-                Text("Order #${order.id}", style = MaterialTheme.typography.headlineSmall)
-                Text(order.status, style = MaterialTheme.typography.titleMedium)
-                order.statusReason?.let {
-                    Text("Reason: $it", style = MaterialTheme.typography.bodyMedium)
-                }
-                Spacer(Modifier.height(16.dp))
-                HorizontalDivider()
-                Spacer(Modifier.height(16.dp))
-                order.items.forEach { item ->
-                    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                        Text("${item.productName} x${item.quantity}")
-                        Text(item.lineTotal.toString())
-                    }
-                }
-                Spacer(Modifier.height(16.dp))
-                HorizontalDivider()
-                Spacer(Modifier.height(16.dp))
-                TotalRow("Subtotal", order.subtotal)
-                TotalRow("Delivery charge", order.deliveryCharge)
-                TotalRow("Discount", -order.discountAmount)
-                TotalRow("Order amount", order.orderAmount)
-                TotalRow("Bottle deposit", order.totalDeposit)
-                TotalRow("Total payable", order.totalPayable, emphasize = true)
-
-                if (order.status == "PENDING") {
-                    Spacer(Modifier.height(24.dp))
-                    OutlinedButton(
-                        onClick = { confirmCancel = true },
-                        enabled = !uiState.isMutating,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Cancel Order")
-                    }
-                }
-            }
+            else -> OrderDetailContent(
+                order = order,
+                isMutating = uiState.isMutating,
+                onCancel = { confirmCancel = true },
+                modifier = Modifier.padding(padding)
+            )
         }
 
         if (confirmCancel) {
             AlertDialog(
                 onDismissRequest = { confirmCancel = false },
                 title = { Text("Cancel this order?") },
+                text = { Text("The shop will be notified and nothing will be delivered.") },
                 confirmButton = {
                     TextButton(onClick = {
                         viewModel.cancel()
                         confirmCancel = false
-                    }) { Text("Yes, cancel") }
+                    }) { Text("Yes, cancel", color = DangerRed) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { confirmCancel = false }) { Text("No") }
+                    TextButton(onClick = { confirmCancel = false }) { Text("Keep order") }
                 }
             )
         }
@@ -131,9 +98,95 @@ fun OrderDetailScreen(onBack: () -> Unit, viewModel: OrderDetailViewModel = hilt
 }
 
 @Composable
-private fun TotalRow(label: String, value: Double, emphasize: Boolean = false) {
-    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-        Text(label, style = if (emphasize) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium)
-        Text(value.toString(), style = if (emphasize) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium)
+private fun OrderDetailContent(order: Order, isMutating: Boolean, onCancel: () -> Unit, modifier: Modifier = Modifier) {
+    Column(
+        modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        SpggSurfaceCard {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Status", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(formatTimestamp(order.createdAt), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                StatusChip(order.status)
+            }
+            Spacer(Modifier.height(16.dp))
+            OrderStatusTracker(order.status)
+            order.statusReason?.let { reason ->
+                Spacer(Modifier.height(14.dp))
+                Row(verticalAlignment = Alignment.Top) {
+                    Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(reason, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
+
+        if (!order.addressText.isNullOrBlank()) {
+            SpggSurfaceCard {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconBadge(Icons.Default.LocationOn, tint = MaterialTheme.colorScheme.tertiary, background = MaterialTheme.colorScheme.tertiaryContainer, size = 40)
+                    Spacer(Modifier.width(12.dp))
+                    Column {
+                        Text(order.addressLabel ?: "Delivery address", style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            listOfNotNull(order.addressText, order.addressArea).joinToString(", "),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                order.deliveryNotes?.takeIf { it.isNotBlank() }?.let {
+                    Spacer(Modifier.height(10.dp))
+                    Text("Note: $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+
+        SpggSurfaceCard {
+            SectionHeader("Items")
+            Spacer(Modifier.height(6.dp))
+            order.items.forEach { item ->
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 6.dp)) {
+                    IconBadge(Icons.Default.WaterDrop, tint = Lagoon, background = LagoonMist, size = 36)
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(item.productName, style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            "${item.quantity} × ${formatRs(item.unitPrice)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Text(formatRs(item.lineTotal), style = MaterialTheme.typography.titleSmall)
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Spacer(Modifier.height(8.dp))
+            AmountRow("Subtotal", order.subtotal)
+            if (order.deliveryCharge != 0.0) AmountRow("Delivery charge", order.deliveryCharge)
+            if (order.discountAmount != 0.0) AmountRow("Discount", -order.discountAmount)
+            if (order.totalDeposit != 0.0) AmountRow("Bottle deposit", order.totalDeposit)
+            Spacer(Modifier.height(4.dp))
+            AmountRow("Total payable", order.totalPayable, emphasize = true)
+        }
+
+        if (order.status == "PENDING") {
+            OutlinedButton(
+                onClick = onCancel,
+                enabled = !isMutating,
+                shape = MaterialTheme.shapes.medium,
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = DangerRed),
+                modifier = Modifier.fillMaxWidth().height(50.dp)
+            ) {
+                Text("Cancel order")
+            }
+        }
+        Spacer(Modifier.height(12.dp))
     }
 }

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.spgg.app.data.repository.AuthRepository
 import com.spgg.app.domain.UserRole
+import com.spgg.app.notification.FcmTokenManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,7 +14,8 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val fcmTokenManager: FcmTokenManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<AuthUiState>(AuthUiState.Unknown)
@@ -32,6 +34,9 @@ class AuthViewModel @Inject constructor(
         } else {
             AuthUiState.Unauthenticated
         }
+        if (existing != null) {
+            registerFcmToken()
+        }
     }
 
     fun login(email: String, password: String) {
@@ -47,6 +52,7 @@ class AuthViewModel @Inject constructor(
                         _uiState.value = AuthUiState.Unauthenticated
                     } else {
                         _uiState.value = AuthUiState.Authenticated(session)
+                        registerFcmToken()
                     }
                 }
                 .onFailure { error ->
@@ -54,6 +60,12 @@ class AuthViewModel @Inject constructor(
                 }
 
             _isLoggingIn.value = false
+        }
+    }
+
+    fun registerFcmToken() {
+        viewModelScope.launch {
+            fcmTokenManager.registerCurrentTokenIfLoggedIn()
         }
     }
 

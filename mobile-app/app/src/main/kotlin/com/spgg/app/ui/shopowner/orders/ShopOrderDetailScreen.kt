@@ -4,27 +4,23 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -43,7 +39,6 @@ private sealed interface ReasonAction {
     data object Cancel : ReasonAction
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShopOrderDetailScreen(onBack: () -> Unit, viewModel: ShopOrderDetailViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -58,17 +53,9 @@ fun ShopOrderDetailScreen(onBack: () -> Unit, viewModel: ShopOrderDetailViewMode
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Order Detail") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
-        },
+    com.spgg.app.ui.components.SpggScaffold(
+        title = "Order detail",
+        onBack = onBack,
         snackbarHost = { SnackbarHost(snackbarHostState) { Snackbar(it) } }
     ) { padding ->
         val order = uiState.order
@@ -84,26 +71,44 @@ fun ShopOrderDetailScreen(onBack: () -> Unit, viewModel: ShopOrderDetailViewMode
                     .fillMaxSize()
                     .padding(padding)
                     .verticalScroll(rememberScrollState())
-                    .padding(24.dp)
+                    .padding(horizontal = 20.dp, vertical = 8.dp)
             ) {
-                Text("Order #${order.id}", style = MaterialTheme.typography.headlineSmall)
-                Text(order.status, style = MaterialTheme.typography.titleMedium)
-                order.statusReason?.let { Text("Reason: $it") }
-                order.deliveryNotes?.let { Text("Notes: $it", style = MaterialTheme.typography.bodySmall) }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Order #${order.id}", style = MaterialTheme.typography.headlineSmall)
+                    com.spgg.app.ui.components.StatusChip(order.status)
+                }
+                order.statusReason?.let {
+                    Spacer(Modifier.height(8.dp))
+                    Text("Reason: $it", style = MaterialTheme.typography.bodyMedium)
+                }
+                order.deliveryNotes?.let {
+                    Spacer(Modifier.height(4.dp))
+                    Text("Notes: $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
 
                 Spacer(Modifier.height(16.dp))
-                HorizontalDivider()
-                Spacer(Modifier.height(16.dp))
-                order.items.forEach { item ->
+                com.spgg.app.ui.components.SpggSurfaceCard {
+                    order.items.forEach { item ->
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)
+                        ) {
+                            Text("${item.productName} ×${item.quantity}", style = MaterialTheme.typography.bodyMedium)
+                            Text(item.lineTotal.toString(), style = MaterialTheme.typography.titleSmall)
+                        }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    HorizontalDivider()
+                    Spacer(Modifier.height(10.dp))
                     Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                        Text("${item.productName} x${item.quantity}")
-                        Text(item.lineTotal.toString())
+                        Text("Total payable", style = MaterialTheme.typography.titleMedium)
+                        Text(order.totalPayable.toString(), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                     }
                 }
-                Spacer(Modifier.height(16.dp))
-                HorizontalDivider()
-                Spacer(Modifier.height(16.dp))
-                Text("Total payable: ${order.totalPayable}", style = MaterialTheme.typography.titleMedium)
 
                 Spacer(Modifier.height(24.dp))
                 when (order.status) {
@@ -111,53 +116,68 @@ fun ShopOrderDetailScreen(onBack: () -> Unit, viewModel: ShopOrderDetailViewMode
                         Button(
                             onClick = viewModel::accept,
                             enabled = !uiState.isMutating,
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("Accept") }
-                        Spacer(Modifier.height(8.dp))
+                            shape = MaterialTheme.shapes.medium,
+                            modifier = Modifier.fillMaxWidth().height(52.dp)
+                        ) { Text("Accept order") }
+                        Spacer(Modifier.height(10.dp))
                         OutlinedButton(
                             onClick = { reasonAction = ReasonAction.Reject },
                             enabled = !uiState.isMutating,
-                            modifier = Modifier.fillMaxWidth()
+                            shape = MaterialTheme.shapes.medium,
+                            modifier = Modifier.fillMaxWidth().height(48.dp)
                         ) { Text("Reject") }
                     }
                     "ACCEPTED" -> {
                         Button(
                             onClick = viewModel::prepare,
                             enabled = !uiState.isMutating,
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("Mark Preparing") }
-                        Spacer(Modifier.height(8.dp))
+                            shape = MaterialTheme.shapes.medium,
+                            modifier = Modifier.fillMaxWidth().height(52.dp)
+                        ) { Text("Mark preparing") }
+                        Spacer(Modifier.height(10.dp))
                         OutlinedButton(
                             onClick = { reasonAction = ReasonAction.Cancel },
                             enabled = !uiState.isMutating,
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("Cancel Order") }
+                            shape = MaterialTheme.shapes.medium,
+                            modifier = Modifier.fillMaxWidth().height(48.dp)
+                        ) { Text("Cancel order") }
                     }
                     "PREPARING" -> {
                         Button(
                             onClick = { showAssignDialog = true },
                             enabled = !uiState.isMutating && uiState.deliveryBoys.isNotEmpty(),
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("Assign Delivery") }
+                            shape = MaterialTheme.shapes.medium,
+                            modifier = Modifier.fillMaxWidth().height(52.dp)
+                        ) { Text("Assign delivery") }
                         if (uiState.deliveryBoys.isEmpty()) {
+                            Spacer(Modifier.height(8.dp))
                             Text(
                                 "No delivery boys on your team yet — add one from Team",
-                                style = MaterialTheme.typography.bodySmall
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(10.dp))
                         OutlinedButton(
                             onClick = { reasonAction = ReasonAction.Cancel },
                             enabled = !uiState.isMutating,
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("Cancel Order") }
+                            shape = MaterialTheme.shapes.medium,
+                            modifier = Modifier.fillMaxWidth().height(48.dp)
+                        ) { Text("Cancel order") }
                     }
                     "OUT_FOR_DELIVERY" -> {
-                        Text("Out for delivery — awaiting delivery boy confirmation", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            "Out for delivery — awaiting delivery boy confirmation",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                     "DELIVERED" -> {
                         order.emptyBottlesCollected?.let {
-                            Text("Empty bottles collected: $it / ${order.totalBottleQuantity}", style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                "Empty bottles collected: $it / ${order.totalBottleQuantity}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
                         }
                     }
                 }

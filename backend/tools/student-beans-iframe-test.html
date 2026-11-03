@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Student Beans Connect — USA Test (Lyca Mobile)</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --border: #334155;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --success: #4ade80;
+      --warn: #fbbf24;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    header {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
+    }
+
+    header h1 {
+      margin: 0 0 0.25rem;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.875rem;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 1rem;
+      padding: 1rem;
+      min-height: calc(100vh - 72px);
+    }
+
+    @media (max-width: 960px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .iframe-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 720px;
+    }
+
+    .iframe-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+
+    .iframe-toolbar label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .iframe-toolbar input {
+      flex: 1;
+      min-width: 200px;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.8125rem;
+    }
+
+    .iframe-toolbar button {
+      padding: 0.5rem 0.875rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--accent);
+      color: #0f172a;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.8125rem;
+    }
+
+    .iframe-toolbar button.secondary {
+      background: transparent;
+      color: var(--text);
+    }
+
+    iframe {
+      flex: 1;
+      width: 100%;
+      min-height: 640px;
+      border: 0;
+      background: #fff;
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+    }
+
+    .card h2 {
+      margin: 0 0 0.75rem;
+      font-size: 0.9375rem;
+    }
+
+    .card p,
+    .card li {
+      margin: 0 0 0.5rem;
+      font-size: 0.8125rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .card ul {
+      margin: 0;
+      padding-left: 1.1rem;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      background: #14532d;
+      color: var(--success);
+    }
+
+    .badge.mock {
+      background: #713f12;
+      color: var(--warn);
+    }
+
+    .log {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 0.75rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.75rem;
+      max-height: 280px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .log-entry {
+      margin-bottom: 0.5rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px dashed var(--border);
+    }
+
+    .log-entry:last-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: 0;
+    }
+
+    .log-time {
+      color: var(--accent);
+    }
+
+    .log-empty {
+      color: var(--muted);
+    }
+
+    code {
+      background: var(--bg);
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+    }
+
+    .actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-top: 0.75rem;
+    }
+
+    .actions button {
+      padding: 0.45rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.75rem;
+    }
+
+    .actions button:hover {
+      border-color: var(--accent);
+    }
+
+    .alert {
+      margin: 0 1rem 0;
+      padding: 0.875rem 1rem;
+      border-radius: 8px;
+      border: 1px solid #92400e;
+      background: #451a03;
+      color: #fde68a;
+      font-size: 0.8125rem;
+      line-height: 1.5;
+    }
+
+    .alert strong {
+      color: #fbbf24;
+    }
+
+    .alert.hidden {
+      display: none;
+    }
+
+    .alert code {
+      color: #fef3c7;
+    }
+
+    .iframe-placeholder {
+      display: none;
+      flex: 1;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 0.75rem;
+      padding: 2rem;
+      text-align: center;
+      background: #f8fafc;
+      color: #334155;
+      min-height: 640px;
+    }
+
+    .iframe-placeholder.visible {
+      display: flex;
+    }
+
+    .iframe-placeholder h3 {
+      margin: 0;
+      font-size: 1.125rem;
+      color: #0f172a;
+    }
+
+    .iframe-placeholder p {
+      margin: 0;
+      max-width: 520px;
+      font-size: 0.875rem;
+      line-height: 1.6;
+    }
+
+    .iframe-placeholder .cta {
+      padding: 0.625rem 1rem;
+      border: 0;
+      border-radius: 6px;
+      background: #0284c7;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+
+    .iframe-placeholder ol {
+      text-align: left;
+      margin: 0;
+      padding-left: 1.25rem;
+      font-size: 0.8125rem;
+      line-height: 1.7;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Student Beans Connect — USA (Lyca Mobile)</h1>
+    <p>Local iframe test page per spec: <code>https://connect.studentbeans.com/v4/lyca-mobile/us/</code></p>
+  </header>
+
+  <div id="csp-alert" class="alert hidden">
+    <strong>Iframe blocked on this origin.</strong>
+    Student Beans only allows embedding from approved domains (e.g. <code>https://www.lycamobile.us</code>),
+    not <code id="current-origin"></code>. Use <strong>Open in tab</strong> to test the flow, or run
+    <code>python serve-student-beans-test.py</code> after adding <code>127.0.0.1 www.lycamobile.us</code> to your hosts file.
+  </div>
+
+  <main>
+    <section class="iframe-wrap">
+      <div class="iframe-toolbar">
+        <label for="iframe-url">Iframe URL</label>
+        <input
+          id="iframe-url"
+          type="url"
+          value="https://connect.studentbeans.com/v4/lyca-mobile/us/"
+          spellcheck="false"
+        />
+        <button type="button" id="reload-btn">Reload iframe</button>
+        <button type="button" class="secondary" id="open-tab-btn">Open in tab</button>
+      </div>
+      <div id="iframe-placeholder" class="iframe-placeholder visible">
+        <h3>Connect page cannot load in iframe here</h3>
+        <p>
+          The URL works in a new tab, but Student Beans sends
+          <code>Content-Security-Policy: frame-ancestors</code> that blocks
+          <code>localhost</code>. This is expected for local testing.
+        </p>
+        <button type="button" class="cta" id="placeholder-open-tab">Open Connect in new tab</button>
+        <ol>
+          <li>To test the real iframe embed locally, add to hosts: <code>127.0.0.1 www.lycamobile.us</code></li>
+          <li>Run: <code>python serve-student-beans-test.py</code> (Admin / port 443)</li>
+          <li>Open: <code>https://www.lycamobile.us/student-beans-iframe-test.html</code></li>
+        </ol>
+      </div>
+      <iframe
+        id="student-beans-frame"
+        src="about:blank"
+        title="Student Beans Connect — Lyca Mobile USA"
+        allow="clipboard-write"
+        referrerpolicy="strict-origin-when-cross-origin"
+        hidden
+      ></iframe>
+    </section>
+
+    <aside class="sidebar">
+      <div class="card">
+        <h2>Spring Boot backend <span class="badge mock">Assumed</span></h2>
+        <p>When implemented, the backend would typically expose:</p>
+        <ul>
+          <li><code>GET /api/student-discount/connect-url</code> — returns iframe URL for locale</li>
+          <li><code>POST /api/student-discount/verification-callback</code> — receives verified student token/code</li>
+          <li><code>POST /api/student-discount/apply</code> — applies discount to cart/order</li>
+        </ul>
+        <p>This page calls the local Spring Boot service on port <code>8080</code>.</p>
+        <div class="actions">
+          <button type="button" id="mock-success-btn">Mock verification success</button>
+          <button type="button" id="mock-backend-btn">Send callback to backend</button>
+          <button type="button" id="apply-discount-btn">Apply discount to cart</button>
+        </div>
+        <p>Demo cart ID: <code id="demo-cart-id">demo-cart-001</code></p>
+        <p>Last verification ID: <code id="last-verification-id">—</code></p>
+      </div>
+
+      <div class="card">
+        <h2>Why iframe is blank on localhost</h2>
+        <p>Connect redirects to:</p>
+        <p><code>https://www.studentbeans.com/.../embedded/lyca-mobile/student</code></p>
+        <p>Allowed parent origins:</p>
+        <ul>
+          <li><code>https://www.lycamobile.us</code></li>
+          <li><code>https://www.lycamobile.co.uk</code></li>
+          <li><code>https://stage.ldsvcplatform.com</code></li>
+        </ul>
+        <p><code>localhost</code> is not in that list, so the browser shows an empty frame.</p>
+      </div>
+
+      <div class="card">
+        <h2>Local iframe test (works)</h2>
+        <p>1. Add to hosts (Admin): <code>127.0.0.1 www.lycamobile.us</code></p>
+        <p>2. Run: <code>python serve-student-beans-test.py</code></p>
+        <p>3. Open: <code>https://www.lycamobile.us/student-beans-iframe-test.html</code></p>
+        <p>Accept the self-signed certificate warning once.</p>
+      </div>
+
+      <div class="card">
+        <h2>Event log</h2>
+        <p>Listens for <code>postMessage</code> from Student Beans iframe and mock backend actions.</p>
+        <div id="event-log" class="log">
+          <div class="log-empty">Waiting for iframe or mock events…</div>
+        </div>
+        <div class="actions">
+          <button type="button" id="clear-log-btn">Clear log</button>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    (function () {
+      var API_BASE = "http://localhost:8080/api/student-discount";
+      var CONNECT_URL = "https://connect.studentbeans.com/v4/lyca-mobile/us/";
+      var DEMO_CART_ID = "demo-cart-001";
+      var lastVerificationId = null;
+      var ALLOWED_PARENTS = [
+        "https://www.lycamobile.us",
+        "https://www.lycamobile.co.uk",
+        "https://stage.ldsvcplatform.com",
+        "https://cms-modern.studentbeans.com"
+      ];
+
+      var frame = document.getElementById("student-beans-frame");
+      var placeholder = document.getElementById("iframe-placeholder");
+      var cspAlert = document.getElementById("csp-alert");
+      var currentOriginEl = document.getElementById("current-origin");
+      var urlInput = document.getElementById("iframe-url");
+      var logEl = document.getElementById("event-log");
+      var entries = [];
+      var currentOrigin = window.location.origin;
+      var iframeAllowed = ALLOWED_PARENTS.indexOf(currentOrigin) !== -1;
+
+      function timestamp() {
+        return new Date().toLocaleTimeString();
+      }
+
+      function appendLog(source, payload) {
+        if (entries.length === 0) {
+          logEl.innerHTML = "";
+        }
+
+        var entry = document.createElement("div");
+        entry.className = "log-entry";
+        entry.innerHTML =
+          '<span class="log-time">[' + timestamp() + "] " + source + "</span>\n" +
+          (typeof payload === "string" ? payload : JSON.stringify(payload, null, 2));
+        logEl.prepend(entry);
+        entries.unshift(entry);
+        if (entries.length > 50) {
+          entries.pop().remove();
+        }
+      }
+
+      function openConnectTab() {
+        var url = urlInput.value.trim() || CONNECT_URL;
+        window.open(url, "_blank", "noopener,noreferrer");
+        appendLog("host", { action: "open-tab", url: url });
+      }
+
+      function setIframeMode(allowed) {
+        iframeAllowed = allowed;
+        if (allowed) {
+          cspAlert.classList.add("hidden");
+          placeholder.classList.remove("visible");
+          frame.hidden = false;
+          frame.src = urlInput.value.trim() || CONNECT_URL;
+        } else {
+          cspAlert.classList.remove("hidden");
+          placeholder.classList.add("visible");
+          frame.hidden = true;
+          frame.src = "about:blank";
+        }
+      }
+
+      function reloadIframe() {
+        var nextUrl = urlInput.value.trim() || CONNECT_URL;
+        urlInput.value = nextUrl;
+        if (iframeAllowed) {
+          frame.src = nextUrl;
+          appendLog("host", { action: "reload", url: nextUrl });
+        } else {
+          appendLog("host", {
+            action: "reload-blocked",
+            url: nextUrl,
+            reason: "Parent origin not allowed by Student Beans frame-ancestors"
+          });
+        }
+      }
+
+      currentOriginEl.textContent = currentOrigin;
+      setIframeMode(ALLOWED_PARENTS.indexOf(currentOrigin) !== -1);
+
+      document.getElementById("reload-btn").addEventListener("click", reloadIframe);
+      document.getElementById("open-tab-btn").addEventListener("click", openConnectTab);
+      document.getElementById("placeholder-open-tab").addEventListener("click", openConnectTab);
+
+      document.getElementById("clear-log-btn").addEventListener("click", function () {
+        entries = [];
+        logEl.innerHTML = '<div class="log-empty">Waiting for iframe or mock events…</div>';
+      });
+
+      frame.addEventListener("load", function () {
+        appendLog("iframe", { event: "load", src: frame.src });
+      });
+
+      frame.addEventListener("error", function () {
+        appendLog("iframe", { event: "error", src: frame.src });
+      });
+
+      window.addEventListener("message", function (event) {
+        var origin = event.origin || "unknown";
+        var fromStudentBeans = origin.indexOf("studentbeans.com") !== -1;
+
+        appendLog(fromStudentBeans ? "studentbeans" : "postMessage", {
+          origin: origin,
+          data: event.data
+        });
+
+        if (fromStudentBeans) {
+          handleStudentBeansMessage(event.data);
+        }
+      });
+
+      function postVerification(payload) {
+        return fetch(API_BASE + "/verification-callback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        }).then(function (response) {
+          return response.json().then(function (body) {
+            appendLog("backend-response", { status: response.status, body: body });
+            if (response.ok && body.data && body.data.verificationId) {
+              lastVerificationId = body.data.verificationId;
+              document.getElementById("last-verification-id").textContent = lastVerificationId;
+            }
+            return body;
+          });
+        });
+      }
+
+      function loadConnectUrlFromBackend() {
+        fetch(API_BASE + "/connect-url?country=us")
+          .then(function (response) { return response.json(); })
+          .then(function (body) {
+            if (body.success && body.data && body.data.connectUrl) {
+              CONNECT_URL = body.data.connectUrl;
+              urlInput.value = CONNECT_URL;
+              if (iframeAllowed) {
+                frame.src = CONNECT_URL;
+              }
+              appendLog("backend", { action: "connect-url-loaded", data: body.data });
+            }
+          })
+          .catch(function (error) {
+            appendLog("backend", { error: error.message, hint: "Start student-beans-service on port 8080" });
+          });
+      }
+
+      function handleStudentBeansMessage(data) {
+        var payload = {
+          studentId: data.studentId || data.sbidNumber || null,
+          sbidNumber: data.sbidNumber || null,
+          verificationToken: data.verificationToken || data.token || null,
+          offerSlug: data.offerSlug || "lyca-mobile",
+          countryCode: data.countryCode || "us",
+          discountCode: data.discountCode || data.code || null,
+          status: data.status || "verified",
+          rawPayload: typeof data === "object" ? data : { value: data }
+        };
+
+        postVerification(payload).catch(function (error) {
+          appendLog("backend-response", { error: error.message });
+        });
+      }
+
+      document.getElementById("mock-success-btn").addEventListener("click", function () {
+        postVerification({
+          studentId: "mock-student-123",
+          verificationToken: "mock-token-" + Date.now(),
+          offerSlug: "lyca-mobile",
+          countryCode: "us",
+          discountCode: "STUDENT-MOCK-10",
+          status: "verified",
+          rawPayload: { source: "mock-success-btn" }
+        }).catch(function (error) {
+          appendLog("backend-response", { error: error.message });
+        });
+      });
+
+      document.getElementById("mock-backend-btn").addEventListener("click", function () {
+        postVerification({
+          studentId: "mock-student-123",
+          verificationToken: "mock-token-" + Date.now(),
+          offerSlug: "lyca-mobile",
+          countryCode: "us",
+          status: "verified",
+          rawPayload: { source: "mock-backend-btn" }
+        }).catch(function (error) {
+          appendLog("backend-response", { error: error.message });
+        });
+      });
+
+      document.getElementById("apply-discount-btn").addEventListener("click", function () {
+        if (!lastVerificationId) {
+          appendLog("backend", { error: "No verification yet — run mock callback first" });
+          return;
+        }
+
+        fetch(API_BASE + "/apply", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            verificationId: lastVerificationId,
+            cartId: DEMO_CART_ID
+          })
+        })
+          .then(function (response) { return response.json(); })
+          .then(function (body) {
+            appendLog("backend-response", { action: "apply-discount", body: body });
+          })
+          .catch(function (error) {
+            appendLog("backend-response", { error: error.message });
+          });
+      });
+
+      loadConnectUrlFromBackend();
+
+      appendLog("host", {
+        message: "Test page ready",
+        iframeUrl: CONNECT_URL,
+        parentOrigin: currentOrigin,
+        iframeEmbedAllowed: iframeAllowed,
+        apiBase: API_BASE
+      });
+    })();
+  </script>
+</body>
+</html>

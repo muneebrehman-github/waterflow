@@ -102,7 +102,7 @@ class CustomerRepository @Inject constructor(
     }
 }
 
-private fun ShopDirectoryResponseDto.toDomain() = ShopDirectoryEntry(id, name, description, address)
+private fun ShopDirectoryResponseDto.toDomain() = ShopDirectoryEntry(id, name, description, address, contactEmail)
 
 private fun CustomerProfileResponseDto.toDomain() = CustomerProfile(id, fullName, phone, email, status, shopId, shopName)
 

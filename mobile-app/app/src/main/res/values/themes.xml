@@ -1,6 +1,12 @@
 <resources>
-    <!-- Base application theme; actual theming (light/dark, colors) is done
-         via Compose's MaterialTheme in ui/theme, this just needs to be a
-         valid Material3 launch theme. -->
-    <style name="Theme.SaafPaniGharGhar" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- Base application theme; actual theming (colors, type) is done via
+         Compose's MaterialTheme in ui/theme. The app is light-only, so the
+         system bars are light with dark icons to match. -->
+    <style name="Theme.SaafPaniGharGhar" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/spgg_background</item>
+        <item name="android:statusBarColor">@color/spgg_background</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:navigationBarColor">@color/spgg_surface</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
 </resources>

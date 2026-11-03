@@ -41,6 +41,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.spgg.app.domain.BottleBalance
 import com.spgg.app.domain.Payment
+import com.spgg.app.ui.auth.LocalShopCapabilities
 import com.spgg.app.ui.ledger.LedgerStatementView
 
 private val PAYMENT_METHODS = listOf("CASH", "BANK_TRANSFER", "OTHER")
@@ -50,6 +51,7 @@ private val ADJUSTMENT_TYPES = listOf("LOST", "DAMAGED")
 @Composable
 fun ShopCustomerLedgerScreen(onBack: () -> Unit, viewModel: ShopCustomerLedgerViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val capabilities = LocalShopCapabilities.current
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedTab by remember { mutableStateOf(0) }
     var showRecordDialog by remember { mutableStateOf(false) }
@@ -75,10 +77,17 @@ fun ShopCustomerLedgerScreen(onBack: () -> Unit, viewModel: ShopCustomerLedgerVi
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = {
-                if (selectedTab == 2) showAdjustmentDialog = true else showRecordDialog = true
-            }) {
-                Icon(Icons.Default.Add, contentDescription = if (selectedTab == 2) "Mark Lost/Damaged" else "Record Payment")
+            val showFab = when (selectedTab) {
+                1 -> capabilities.canRecordPayments
+                2 -> capabilities.canAdjustBottles
+                else -> false
+            }
+            if (showFab) {
+                FloatingActionButton(onClick = {
+                    if (selectedTab == 2) showAdjustmentDialog = true else showRecordDialog = true
+                }) {
+                    Icon(Icons.Default.Add, contentDescription = if (selectedTab == 2) "Mark Lost/Damaged" else "Record Payment")
+                }
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) { Snackbar(it) } }
@@ -98,6 +107,7 @@ fun ShopCustomerLedgerScreen(onBack: () -> Unit, viewModel: ShopCustomerLedgerVi
                     1 -> PaymentsList(
                         payments = uiState.payments,
                         modifier = Modifier.weight(1f),
+                        canVoid = capabilities.canVoidPayments,
                         onVoid = { paymentId -> voidTargetId = paymentId }
                     )
                     else -> BottleBalanceView(balance = uiState.bottleBalance, modifier = Modifier.weight(1f))
@@ -238,7 +248,7 @@ private fun MarkAdjustmentDialog(
 }
 
 @Composable
-private fun PaymentsList(payments: List<Payment>, modifier: Modifier, onVoid: (Long) -> Unit) {
+private fun PaymentsList(payments: List<Payment>, modifier: Modifier, canVoid: Boolean, onVoid: (Long) -> Unit) {
     if (payments.isEmpty()) {
         Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("No payments recorded yet")
@@ -250,12 +260,12 @@ private fun PaymentsList(payments: List<Payment>, modifier: Modifier, onVoid: (L
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        items(payments, key = { it.id }) { payment -> PaymentCard(payment, onVoid) }
+        items(payments, key = { it.id }) { payment -> PaymentCard(payment, canVoid, onVoid) }
     }
 }
 
 @Composable
-private fun PaymentCard(payment: Payment, onVoid: (Long) -> Unit) {
+private fun PaymentCard(payment: Payment, canVoid: Boolean, onVoid: (Long) -> Unit) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp)) {
             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
@@ -266,7 +276,7 @@ private fun PaymentCard(payment: Payment, onVoid: (Long) -> Unit) {
             payment.reference?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
             payment.voidReason?.let { Text("Void reason: $it", style = MaterialTheme.typography.bodySmall) }
             Text(payment.createdAt, style = MaterialTheme.typography.bodySmall)
-            if (payment.status == "ACTIVE") {
+            if (payment.status == "ACTIVE" && canVoid) {
                 Spacer(Modifier.height(8.dp))
                 OutlinedButton(onClick = { onVoid(payment.id) }) { Text("Void") }
             }

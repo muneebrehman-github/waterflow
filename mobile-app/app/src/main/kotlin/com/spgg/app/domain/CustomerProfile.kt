@@ -22,5 +22,15 @@ data class ShopDirectoryEntry(
     val id: Long,
     val name: String,
     val description: String?,
-    val address: String?
-)
+    val address: String?,
+    val contactEmail: String? = null
+) {
+    val pickerLabel: String
+        get() = buildString {
+            append(name)
+            when {
+                !contactEmail.isNullOrBlank() -> append(" · ").append(contactEmail)
+                !address.isNullOrBlank() -> append(" · ").append(address)
+            }
+        }
+}

@@ -1,37 +1,40 @@
 package com.spgg.backend.security;
 
 import java.time.Duration;
+import java.time.Instant;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 /**
- * Tracks live refresh tokens in Redis (key = jti, value = userId), so a
- * refresh token can be validated and individually revoked on logout without
- * needing a DB round trip. TTL mirrors the token's own expiry.
+ * Tracks live refresh tokens in MariaDB so sessions survive backend restarts.
+ * Each row mirrors the refresh JWT's jti and expiry; revoked on logout.
  */
 @Component
 @RequiredArgsConstructor
 public class RefreshTokenStore {
 
-    private static final String KEY_PREFIX = "refresh:";
-
-    private final StringRedisTemplate redisTemplate;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final JwtProperties jwtProperties;
 
     public void store(String jti, Long userId) {
-        redisTemplate.opsForValue().set(
-                KEY_PREFIX + jti,
-                String.valueOf(userId),
-                Duration.ofDays(jwtProperties.getRefreshTokenTtlDays()));
+        RefreshToken token = new RefreshToken();
+        token.setJti(jti);
+        token.setUserId(userId);
+        token.setExpiresAt(Instant.now().plus(Duration.ofDays(jwtProperties.getRefreshTokenTtlDays())));
+        refreshTokenRepository.save(token);
     }
 
     public boolean isValid(String jti, Long userId) {
-        String storedUserId = redisTemplate.opsForValue().get(KEY_PREFIX + jti);
-        return storedUserId != null && storedUserId.equals(String.valueOf(userId));
+        return refreshTokenRepository.findByJtiAndRevokedFalse(jti)
+                .filter(token -> token.getUserId().equals(userId))
+                .filter(token -> token.getExpiresAt().isAfter(Instant.now()))
+                .isPresent();
     }
 
     public void revoke(String jti) {
-        redisTemplate.delete(KEY_PREFIX + jti);
+        refreshTokenRepository.findById(jti).ifPresent(token -> {
+            token.setRevoked(true);
+            refreshTokenRepository.save(token);
+        });
     }
 }

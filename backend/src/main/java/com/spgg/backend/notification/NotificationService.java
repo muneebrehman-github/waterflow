@@ -11,6 +11,7 @@ import jakarta.annotation.PostConstruct;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +32,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class NotificationService {
 
+    private static final List<String> FCM_SCOPES = List.of(
+            "https://www.googleapis.com/auth/firebase.messaging",
+            "https://www.googleapis.com/auth/cloud-platform");
+
     private final DeviceTokenRepository deviceTokenRepository;
 
     @Value("${waterflow.fcm.service-account-path}")
@@ -42,16 +47,18 @@ public class NotificationService {
     void init() {
         try {
             InputStream credentialsStream = openStream(serviceAccountPath);
+            GoogleCredentials credentials = GoogleCredentials.fromStream(credentialsStream).createScoped(FCM_SCOPES);
+            credentials.refreshIfExpired();
             FirebaseOptions options = FirebaseOptions.builder()
-                    .setCredentials(GoogleCredentials.fromStream(credentialsStream))
+                    .setCredentials(credentials)
                     .build();
             FirebaseApp app = FirebaseApp.getApps().isEmpty() ? FirebaseApp.initializeApp(options) : FirebaseApp.getInstance();
             firebaseMessaging = FirebaseMessaging.getInstance(app);
-            log.info("FCM initialized from {}", serviceAccountPath);
+            log.info("FCM initialized from {} (OAuth token refresh OK)", serviceAccountPath);
         } catch (Exception e) {
             log.warn("FCM not configured (using placeholder or invalid credentials at '{}') — "
-                    + "push notifications are disabled until a real Firebase service account is provided: {}",
-                    serviceAccountPath, e.getMessage());
+                    + "push notifications are disabled until a real Firebase service account is provided",
+                    serviceAccountPath, e);
         }
     }
 
@@ -77,7 +84,7 @@ public class NotificationService {
                         .build();
                 firebaseMessaging.send(message);
             } catch (FirebaseMessagingException e) {
-                log.warn("Push to user {} failed for token {}: {}", userId, deviceToken.getId(), e.getMessage());
+                log.warn("Push to user {} failed for token {}: {}", userId, deviceToken.getId(), e.getMessage(), e);
             }
         }
     }

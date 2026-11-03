@@ -9,11 +9,13 @@ import com.spgg.app.data.remote.RawOkHttpClient
 import com.spgg.app.data.remote.BottleApi
 import com.spgg.app.data.remote.CustomerApi
 import com.spgg.app.data.remote.LedgerApi
+import com.spgg.app.data.remote.NotificationApi
 import com.spgg.app.data.remote.OrderApi
 import com.spgg.app.data.remote.PaymentApi
 import com.spgg.app.data.remote.StaffApi
 import com.spgg.app.data.remote.ProductApi
 import com.spgg.app.data.remote.RawRetrofit
+import com.spgg.app.data.remote.ShopApi
 import com.spgg.app.data.remote.ShopProfileApi
 import com.spgg.app.data.remote.TokenAuthenticator
 import dagger.Module
@@ -115,4 +117,12 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideBottleApi(retrofit: Retrofit): BottleApi = retrofit.create(BottleApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideShopApi(retrofit: Retrofit): ShopApi = retrofit.create(ShopApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideNotificationApi(retrofit: Retrofit): NotificationApi = retrofit.create(NotificationApi::class.java)
 }

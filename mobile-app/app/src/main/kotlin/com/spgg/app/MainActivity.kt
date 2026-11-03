@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import com.spgg.app.notification.NotificationNavigation
 import com.spgg.app.ui.navigation.AppNavHost
 import com.spgg.app.ui.theme.SaafPaniGharGharTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -15,6 +16,7 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        NotificationNavigation.setFromIntent(intent)
         setContent {
             SaafPaniGharGharTheme {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -22,5 +24,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        NotificationNavigation.setFromIntent(intent)
     }
 }

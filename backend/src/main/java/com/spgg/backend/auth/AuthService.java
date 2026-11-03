@@ -1,6 +1,7 @@
 package com.spgg.backend.auth;
 
 import com.spgg.backend.common.ForbiddenException;
+import com.spgg.backend.common.UnauthorizedException;
 import com.spgg.backend.security.JwtTokenProvider;
 import com.spgg.backend.security.RefreshTokenStore;
 import com.spgg.backend.user.User;
@@ -37,13 +38,13 @@ public class AuthService {
     public AccessTokenResponse refresh(RefreshRequest request) {
         Claims claims = jwtTokenProvider.parseClaims(request.refreshToken());
         if (!jwtTokenProvider.isRefreshToken(claims)) {
-            throw new ForbiddenException("Not a refresh token");
+            throw new UnauthorizedException("Not a refresh token");
         }
 
         Long userId = jwtTokenProvider.getUserId(claims);
         String jti = claims.getId();
         if (!refreshTokenStore.isValid(jti, userId)) {
-            throw new ForbiddenException("Invalid or expired refresh token");
+            throw new UnauthorizedException("Invalid or expired refresh token");
         }
 
         User user = userRepository.findById(userId)

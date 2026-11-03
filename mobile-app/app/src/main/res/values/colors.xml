@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="spgg_background">#F6F8FC</color>
+    <color name="spgg_surface">#FFFFFF</color>
+    <color name="spgg_primary">#1668F2</color>
+    <color name="spgg_aqua">#21C4E8</color>
+</resources>

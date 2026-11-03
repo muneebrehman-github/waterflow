@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Super Admin's shop lifecycle management — backs the React admin portal's Shops page. */
+/** Super Admin's shop lifecycle management — JSON API for Control Center and external clients. */
 @RestController
 @RequestMapping("/api/v1/admin/shops")
 @RequiredArgsConstructor
